@@ -159,3 +159,105 @@ bench 4x8x225, incline dumbbell press 3x10x80s, cable flyes 3x15x50 then 20m tre
   2. Workout: incline dumbbell press, 3×10, 80 lb dumbbells
   3. Workout: cable flyes, 3×15, 50 lb
   4. Workout: treadmill, 20 min, 3.5 mph
+
+---
+
+## Naming Equivalence (v1.1)
+
+### Separator equivalence — all the same workout
+```
+/knee_pushups 50
+/knee-pushups 50
+/knee pushups 50
+/kneepushups 50
+```
+→ Exercise: KNEE PUSHUPS, 50 reps (one history bucket)
+
+### Bare command ≡ /log
+```
+/pullups 3x10@45
+/log pullups 3x10@45
+```
+→ Both: pullups, 3 sets × 10 reps @ 45 lb added weight — identical result, one report
+
+### Weighted calisthenics on bare commands
+```
+/pullups 3x10@45        → 3×10 with 45 lb added
+/dips 5 sets of 12      → 5×12 bodyweight
+/squats 3,10,135        → 3×10 @ 135 lb
+/pushups 10 wv 40       → 10 reps in a 40 lb vest
+/pushups -5             → subtract 5 from today's total
+```
+
+### Short-form coalescing
+```
+/log bench 3x10 at 135
+/log benchpress 2x8 at 155
+/report bench press
+```
+→ Both sets appear under one BENCH PRESS report.
+
+---
+
+## Modifier-Composed Names (v1.1)
+
+The four ingredient categories (implement × angle × laterality × grip) combine freely in front of any base movement:
+
+```
+/log incline dumbbell curls 3x10 at 25
+```
+→ Exercise: INCLINE DUMBBELL CURL (its own history bucket), 3×10 @ 25 lb
+
+```
+/log single arm cable curl 3x12 at 30
+```
+→ Exercise: SINGLE ARM CABLE CURL, 3×12 @ 30 lb
+
+```
+/log reverse ez bar curls 3x10 at 40
+```
+→ Exercise: REVERSE EZ BAR CURL, 3×10 @ 40 lb
+
+```
+/log decline bench press 3x8 at 185
+```
+→ Exercise: DECLINE BENCH PRESS, 3×8 @ 185 lb
+
+No confirmation prompt, no renaming — the nuance the athlete typed is the exercise that gets tracked.
+
+---
+
+## Domain Coverage (v1.1)
+
+### Yoga (English ≡ Sanskrit)
+```
+/mountain_pose 60s        ≡ /tadasana 60s
+/warrior_one 30s          ≡ /warrior-1 30s
+/downward_facing_dog 45s  ≡ /adho_mukha_svanasana 45s
+/sun_salutation_a 5       → 5 rounds (counted, not timed)
+```
+
+### Duration context — bare number means seconds
+```
+/plank 90        ≡ /plank 90s
+/crow_pose 15    ≡ /crow_pose 15s
+```
+
+### Fitness exams
+```
+/curlups 45                 → FitnessGram curl-ups
+/pacer 55                   → PACER laps
+/handreleasepushups 45      → Army AFT hand-release pushups
+/sprintdragcarry 1          → Army AFT SDC round
+/swim500 1                  → Navy PRT 500-yard swim
+/sprint300 1                → Cooper test 300 m sprint
+```
+
+### Pro combines & track
+```
+/log 40yard 4.4             → NFL 40-yard dash
+/log laneagility 11.2       → NBA lane agility
+/log exitvelocity 95        → MLB exit velocity
+/log sprint100 12.5         → 100 m dash
+/log halfmarathon 1:45:00   → half marathon
+```

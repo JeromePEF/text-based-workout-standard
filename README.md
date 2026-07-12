@@ -16,18 +16,28 @@ Fitness logging shouldn't require a smartphone app, a proprietary format, or tap
 ```
 /water 24
 /food chicken breast 280 45p 6f 0c
-/log bench press 4x8 185lb
-log pullups 12
+/pullups 3x10@45              ← bare command ≡ /log pullups 3x10@45
+/knee_pushups 20              ← ≡ /knee-pushups ≡ /knee pushups
+/log incline dumbbell curls 3x10 at 25
+/mountain_pose 60s            ← ≡ /tadasana 60s
+/run 5k 22:30
 ```
 
 ## What's Covered
 
 | Domain | What You Can Log |
 |--------|-----------------|
-| **Workouts** | Exercises, sets, reps, weight, duration, distance, cardio, machine settings |
+| **Workouts** | Every exercise is its own command: calisthenics (incl. weighted — sets×reps@weight on any bodyweight move), strength with modifier-composed names (implement × angle × laterality × grip — the full "curl codex"), yoga (English + Sanskrit), pilates (mat + reformer), cardio & machines, fitness exams (FitnessGram, Army AFT, Navy PRT, Marine PFT, Cooper), pro combines (NFL/NBA/WNBA/MLB/NHL/soccer), track & field, distance running |
 | **Nutrition** | Meals, individual foods, calories, macros (protein/carbs/fat), meal labels |
 | **Water** | Daily water intake in oz or ml |
 | **Body Metrics** | Weight, measurements, blood work |
+
+## Naming Guarantees
+
+- `_`, `-`, space, and joined forms are the **same command**: `/knee_pushups` ≡ `/knee-pushups` ≡ `/knee pushups` ≡ `/kneepushups`
+- Bare commands and `/log` are **equivalent**: `/pullups 3x10@45` ≡ `/log pullups 3x10@45`
+- Short forms coalesce: `bench` ≡ `benchpress` ≡ `bench press` — one history bucket
+- Modifier-composed names ("incline dumbbell curl", "single arm cable curl") are accepted **as-is**, each with its own history
 
 ## Specification
 

@@ -1,4 +1,6 @@
-# TBWS Specification v1.0
+# TBWS Specification v1.1
+
+> **v1.1 (2026-07-11):** name-separator equivalence (`_` / `-` / space / joined), sets×reps(@weight) accepted on bare shorthand commands (`/pullups 3x10@45` ≡ `/log pullups 3x10@45`), modifier-composed exercise names (implement × angle × laterality × grip), duration bare-number-means-seconds, short-form name coalescing, weighted-vest syntax, and the full domain catalog (yoga, pilates, fitness exams, pro combines, track & field).
 
 ## Table of Contents
 
@@ -58,22 +60,70 @@ NATURAL_LANGUAGE ::= free-form text that parsers resolve to an intent
 | Format | Example | Meaning |
 |--------|---------|---------|
 | Bare count | `50` | 50 reps |
-| Sets × reps | `3x12`, `3,12` | 3 sets of 12 reps |
-| Sets × reps × weight | `4x8x225`, `4,8,225` | 4 sets × 8 reps × 225 (default lb) |
-| Sets × reps × weight + unit | `4x8x100kg`, `4,8,100 kg` | Explicit kg |
+| Sets × reps | `3x12`, `3,12`, `5 sets of 12` | 3 sets of 12 reps (or 5×12) |
+| Sets × reps × weight | `4x8x225`, `4,8,225`, `3x10@45`, `3x10 at 45`, `3x10 with 45lb` | Sets × reps at a weight (default lb). `@`, `at`, and `with` are equivalent weight separators |
+| Sets × reps × weight + unit | `4x8x100kg`, `4,8,100 kg`, `5x5@100kg` | Explicit kg |
 | Duration | `45m`, `90s`, `1h15m` | Time-based exercise |
 | Distance | `5k`, `10mi`, `400m` | Cardio distance |
 | Distance + duration | `5k 22:30`, `10mi 1:15:00` | Distance with pace |
+| Weighted vest | `10 wv 40`, `15 wv 20kg` | Reps wearing an N-lb (or kg) vest |
+
+**Duration context rule:** when the exercise is duration-based (a hold, a pose, a machine session), a bare number means **seconds** — `/plank 90` ≡ `/plank 90s`. Producers SHOULD still write the unit.
 
 ### 3.3 Exercise Name
 
 Exercise names are normalized to lowercase, trimmed, and matched against a catalog. Unknown names are accepted and stored verbatim.
 
-**Variants & sides:**
-- Prefix modifiers: `left`, `right`, `decline`, `incline`, `assisted`, `weighted`, `negative`, `archer`
-- Examples: `left leg lunges`, `decline pushups`, `weighted pullups`, `negative pullups`
+#### 3.3.1 Separator Equivalence
 
-**Cardio / machine exercises** accept extended metadata:
+Underscores, dashes, spaces, and full concatenation are **interchangeable** in exercise names — in both slash-command names and `/log` arguments. All of these are the same workout:
+
+```
+/knee_pushups 50
+/knee-pushups 50
+/knee pushups 50
+/kneepushups 50
+/log knee_pushups 50
+/log knee pushups 50
+```
+
+Parsers MUST strip `-` and `_` when matching command names, and treat `_` `-` `/` as spaces when normalizing exercise names for storage.
+
+#### 3.3.2 Plural / Singular & Short-Form Coalescing
+
+`pushup` ≡ `pushups`, `curl` ≡ `curls`. Widely-used short forms coalesce into the same history bucket as the full name — implementations MUST NOT split them:
+
+| Written form | Stored as |
+|--------------|-----------|
+| `bench`, `benchpress`, `bench press`, `bench_press` | BENCH PRESS |
+| `warrior 1`, `warrior one`, `warrior-one` | WARRIOR ONE |
+| Sanskrit yoga names (`tadasana`) | Same bucket as the English pose (`mountain pose`) |
+
+#### 3.3.3 Modifier-Composed Names
+
+Most resistance exercises are combinations of four ingredient categories. Any chain of modifier words in front of a known base exercise is a **valid exercise name**, accepted as-is with **its own history bucket** — no confirmation prompt, no renaming:
+
+| Category | Vocabulary |
+|----------|-----------|
+| **Implement** | `barbell` `bb` `dumbbell` `db` `ez` `easy bar` `cable` `dual cable` `machine` `smith` `band(ed)` `kettlebell` `kb` `plate` `trx` `ring` `bodyweight` `weighted` |
+| **Angle / posture** | `spider` `upright` `standing` `seated` `incline` `low` `high` `lying` `decline` `flat` `bent` `prone` `supine` `preacher` `concentration` `behind the back` `cross body` `overhead` `front` `rear` `side` `chest supported` `kneeling` `half` `full` `elevated` `deficit` |
+| **Laterality** | `single arm` `one arm` `single leg` `alternating` `unilateral` `bilateral` `left` `right` |
+| **Grip** | `underhand` `overhand` `reverse` `neutral` `hammer` `supinated` `supinating` `pronated` `wide grip` `close grip` `narrow grip` `drag` `zottman` |
+
+Worked example — the **curl codex** (implement × angle × laterality × grip):
+
+```
+/log incline dumbbell curls 3x10 at 25      → INCLINE DUMBBELL CURL
+/log single arm cable curl 3x12 at 30       → SINGLE ARM CABLE CURL
+/log reverse ez bar curls 3x10 at 40        → REVERSE EZ BAR CURL
+/log spider curls 3x10 at 20                → SPIDER CURL
+/log behind the back cable curl 3x12 at 25  → BEHIND THE BACK CABLE CURL
+/log decline bench press 3x8 at 185         → DECLINE BENCH PRESS
+```
+
+The same composition applies to presses, rows, raises, extensions, flys, squats, lunges, and every other base movement — `incline`/`decline` and the rest of the vocabulary are adaptable to all exercise types.
+
+**Cardio / machine exercises** accept extended metadata (time, speed, incline/level/resistance, and brand are all optional add-ons):
 ```
 /log treadmill 20m 3.2mph 8 incline brand X
 /log stairmaster 15m level 10
@@ -83,25 +133,31 @@ Exercise names are normalized to lowercase, trimmed, and matched against a catal
 
 ### 3.4 Shorthand Commands
 
-Per-exercise shortcuts for common exercises:
+**Every catalog exercise is its own slash command** — calisthenics, yoga poses, pilates movements, machines, fitness-exam events. `/log` is never required; the bare command and the `/log` form are fully equivalent:
+
 ```
-/pushups 50        →  /log pushups 50
-/pullups 12        →  /log pullups 12
-/dpushups 25       →  /log decline pushups 25
-/squats 3x10 185   →  /log squats 3x10x185
-/bench 4x8 225     →  /log bench press 4x8x225
-/deadlift 5x5 315  →  /log deadlift 5x5x315
-/run 5k 22:30      →  /log run 5k 22:30
+/pushups 50          ≡  /log pushups 50
+/pullups 3x10@45     ≡  /log pullups 3x10@45
+/knee_pushups 3x10   ≡  /log knee pushups 3x10
+/dips 5 sets of 12   ≡  /log dips 5x12
+/squats 3,10,135     ≡  /log squats 3x10x135
+/mountain_pose 60s   ≡  /log mountain pose 60s
+/run 5k 22:30        ≡  /log run 5k 22:30
 ```
 
-### 3.5 Increment Syntax
+Bare commands MUST accept every measurement format of §3.2 — including sets×reps and sets×reps@weight (weighted calisthenics: any bodyweight exercise can carry added weight). Weighted-vest syntax stays on the bare form: `/pushups 10 wv 40`.
+
+`/log` remains the universal entry point for exercises without a dedicated command (weighted strength lifts, modifier-composed names).
+
+### 3.5 Increment / Decrement Syntax
 
 ```
 +N                  → add N to last logged exercise
 +N EXERCISE_NAME    → add N to named exercise
+/EXERCISE -N        → subtract N from today's total (never below zero)
 ```
 
-Examples: `+5`, `+10 pushups`, `+13 rows`
+Examples: `+5`, `+10 pushups`, `+13 rows`, `/pushups -5`
 
 ### 3.6 Natural Language Examples
 
@@ -125,6 +181,23 @@ sprinted 400 meters
 treadmill 20m 3.2mph incline 8
 spin class 45 minutes
 ```
+
+### 3.7 Domain Catalog
+
+A conforming implementation SHOULD cover these workout domains, each with dedicated commands (all obeying §3.3 name rules and §3.4 equivalences):
+
+| Domain | Examples |
+|--------|----------|
+| **Calisthenics / bodyweight** | push (`/pushups`, `/diamond_pushups`, `/dips`), pull (`/pullups`, `/muscle_ups`, `/ring_rows`), legs (`/squats`, `/bulgarian_split_squats`), core (`/abs`, `/leg_raises`), static holds (`/frontleverhold`, `/dead_hang`, `/l_sit`) |
+| **Pilates** | mat (`/hundred`, `/rollup`, `/teaser`, `/pelvic_curl`) and reformer (`/footwork_reformer`, `/rowing_reformer`, `/elephant_reformer`) |
+| **Yoga** | every pose by English name with Sanskrit aliases — standing (`/mountain_pose` ≡ `/tadasana`, `/warrior_one`), balancing (`/crow_pose`, `/headstand`), backbends (`/wheel_pose`), forward bends (`/downward_facing_dog` ≡ `/adho_mukha_svanasana`), flows (`/sun_salutation_a`, counted in rounds) |
+| **Strength / weighted** | `/log` with the modifier-composition vocabulary of §3.3.3 (bench, squat, deadlift, the curl codex, presses, rows, machines) |
+| **Cardio / endurance** | `/run` `/walk` `/bike` `/rowing` `/swim` `/hike`, machines (`/treadmill` distance-first; `/elliptical` `/stairmaster` duration-first) |
+| **Fitness exams** | FitnessGram / Presidential (`/curlups`, `/pacer`, `/milerun`, `/trunk lift`, `/sitreaches`, `/flexedarmhang`), Army AFT (`/handreleasepushups`, `/sprintdragcarry`), Navy PRT (`/swim500`), Marine PFT, Cooper test (`/sprint300`) |
+| **Pro combines** | NFL (`/log 40yard 4.4`, `shuttle20`, `3cone`, `bench225`), NBA/WNBA (`laneagility`, `34court`, `maxvertical`), MLB (`60yard`, `exitvelocity`, `poptime`), NHL (`grip`, `broadjump`), soccer (`30meter`, `arrowhead`, `yoyo`) |
+| **Track & field** | sprints (`/log sprint100 12.5`, `sprint200`, `sprint400`), relays (`relay4x100`) |
+| **Distance running** | `/log 5k 22:30`, `10k`, `halfmarathon`, `marathon`, `ultramarathon` |
+| **Flexibility / mobility** | `/pikestretchhold`, `/splitshold`, `/yoga 45`, stretching sessions, foam rolling |
 
 ---
 
@@ -359,16 +432,22 @@ args            = *(any-char)   ; parsed per-command
 
 ; Workout
 workout-log     = exercise-name SP measurement [SP metadata]
-exercise-name   = 1*(ALPHA / DIGIT / "-" / SP)   ; normalized to lowercase
-measurement     = count / sets-reps / sets-reps-weight / duration / distance
+exercise-name   = word *(name-sep word)          ; normalized to lowercase
+word            = 1*(ALPHA / DIGIT)
+name-sep        = SP / "-" / "_" / ""            ; separators are equivalent (§3.3.1)
+measurement     = count / sets-reps / sets-reps-weight / duration / distance / vest
 count           = NUMBER
 sets-reps       = NUMBER ("x" / ",") NUMBER
-sets-reps-wt    = NUMBER ("x" / ",") NUMBER ("x" / ",") NUMBER [weight-unit]
+                / NUMBER SP "set" ["s"] [SP "of"] SP NUMBER [SP "rep" ["s"]]
+sets-reps-wt    = sets-reps wt-sep NUMBER [weight-unit]
+wt-sep          = "x" / "," / "@" / SP "at" SP / SP "with" SP
 weight-unit     = "lb" / "lbs" / "kg" / "kgs"
 duration        = NUMBER time-unit *(NUMBER time-unit)
+                / NUMBER                          ; bare number = seconds in duration context (§3.2)
 time-unit       = "s" / "sec" / "secs" / "m" / "min" / "mins" / "h" / "hr" / "hrs"
 distance        = NUMBER distance-unit
 distance-unit   = "m" / "meters" / "km" / "k" / "mi" / "mile" / "miles"
+vest            = NUMBER SP "wv" SP NUMBER [weight-unit]   ; reps in a weighted vest
 
 ; Nutrition
 nutrition-log   = food-desc SP calories *(SP macro)
@@ -408,6 +487,18 @@ When multiple patterns could match, parsers apply these rules:
 ---
 
 ## 10. Parser Behaviors
+
+### 10.0 Name Normalization
+
+Applied before catalog matching and storage:
+
+| Rule | Example |
+|------|---------|
+| `_` `-` `/` → space; case-insensitive | `Knee_Pushups` → `knee pushups` |
+| Command lookup strips `-` `_` entirely | `/knee-pushups` → `/kneepushups` |
+| Trailing plural singularized per token (whitelisted keep-whole names exempt: `pushups`, `dips`, `squats`, …) | `spider curls` → `spider curl` |
+| Short-form aliases coalesce | `bench` → `bench press` |
+| Modifier chains preserved verbatim (§3.3.3) | `incline dumbbell curl` stays `incline dumbbell curl` |
 
 ### 10.1 Unit Normalization
 
@@ -475,11 +566,14 @@ When a parser detects intent but has incomplete data:
 | Command | Example |
 |---------|---------|
 | `/log` | `/log bench press 4x8 185lb` |
-| `/pushups` | `/pushups 50` |
-| `/pullups` | `/pullups 12` |
-| `/squats` | `/squats 3x10 225` |
-| `/bench` | `/bench 4x8 185` |
+| `/pushups` | `/pushups 50` · `/pushups 3x10@25` · `/pushups 10 wv 40` · `/pushups -5` |
+| `/pullups` | `/pullups 12` · `/pullups 3x10@45` |
+| `/knee_pushups` | `/knee_pushups 20` (≡ `/knee-pushups` ≡ `/knee pushups`) |
+| `/squats` | `/squats 3x10 225` · `/squats 3,10,135` |
+| `/bench` | `/bench 4x8 185` (≡ `/log bench_press` ≡ `/log benchpress`) |
 | `/deadlift` | `/deadlift 5x5 315` |
+| `/mountain_pose` | `/mountain_pose 60s` (≡ `/tadasana 60s`) |
+| `/elliptical` | `/elliptical 30m` |
 | `/run` | `/run 5k 22:30` |
 | `/food` | `/food "Chicken Breast" 280 45p 6f` |
 | `/water` | `/water 24` |
