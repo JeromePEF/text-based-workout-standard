@@ -16,11 +16,34 @@ Fitness logging shouldn't require a smartphone app, a proprietary format, or tap
 ```
 /water 24
 /food chicken breast 280 45p 6f 0c
-/pullups 3x10@45              ← bare command ≡ /log pullups 3x10@45
-/knee_pushups 20              ← ≡ /knee-pushups ≡ /knee pushups
+/pullups 3x10@45
+/knee_pushups 20
 /log incline dumbbell curls 3x10 at 25
-/mountain_pose 60s            ← ≡ /tadasana 60s
+/mountain_pose 60s
 /run 5k 22:30
+```
+
+Same workout, written four ways — separators are interchangeable:
+
+```
+/knee_pushups 20
+/knee-pushups 20
+/knee pushups 20
+/kneepushups 20
+```
+
+The bare command and `/log` do the same thing:
+
+```
+/pullups 3x10@45
+/log pullups 3x10@45
+```
+
+English and Sanskrit yoga names share one history:
+
+```
+/mountain_pose 60s
+/tadasana 60s
 ```
 
 ## What's Covered
